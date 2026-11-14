@@ -1,0 +1,70 @@
+name: Pythia8 + ROOT6 Simulation & Analysis Pipeline
+
+on:
+  workflow_dispatch:
+    inputs:
+      n_events:
+        description: "Liczba zdarzeń do wygenerowania w Pythia 8"
+        required: false
+        default: "100000"
+  push:
+    branches: [ main, master ]
+    paths:
+      - "generate_events.cc"
+      - "analyze_events.cc"
+      - "draw_plots.C"
+      - "build_presentation.py"
+      - "Makefile"
+      - ".github/workflows/pipeline.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  simulate-and-analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup ROOT 6 and Pythia 8 via Micromamba (conda-forge)
+        uses: mamba-org/setup-micromamba@v2
+        with:
+          environment-name: hep
+          create-args: >-
+            -c conda-forge
+            root
+            pythia8
+            cxx-compiler
+            make
+            python=3.11
+            matplotlib
+            pillow
+
+      - name: Compile and run simulation + ROOT analysis + plots
+        shell: bash -el {0}
+        run: |
+          NEVENTS="${{ github.event.inputs.n_events || '100000' }}"
+          chmod +x run_pipeline.sh
+          ./run_pipeline.sh "${NEVENTS}"
+          python3 build_presentation.py plots prezentacja.pdf
+
+      - name: Upload generated artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: analysis-results
+          path: |
+            analysis.root
+            prezentacja.pdf
+            plots/
+
+      - name: Commit analysis.root, plots, and prezentacja.pdf to repository
+        shell: bash -el {0}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add analysis.root prezentacja.pdf plots/
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: update generated analysis.root, plots, and prezentacja.pdf [skip ci]"
+            git push
+          fi

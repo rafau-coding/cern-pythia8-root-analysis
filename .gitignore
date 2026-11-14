@@ -1,0 +1,15 @@
+.idea/
+.vscode/
+.DS_Store
+__pycache__/
+Zadanie*
+
+*.o
+*.so
+*.d
+*.pcm
+generate_events
+analyze_events
+
+*.root
+!analysis.root
