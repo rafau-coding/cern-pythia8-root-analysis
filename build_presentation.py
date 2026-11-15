@@ -51,7 +51,7 @@ def ensure_png_from_pdf(plots_dir):
         if (
             not os.path.exists(png_path)
             or os.path.getsize(png_path) == 0
-            or os.path.getmtime(pdf_path) >= os.path.getmtime(png_path)
+            or (os.path.getmtime(pdf_path) - os.path.getmtime(png_path)) > 5.0
         ):
             missing_pairs.append((pdf_path, png_path))
 
